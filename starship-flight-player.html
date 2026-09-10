@@ -1,0 +1,1533 @@
+<title>Starship Flight Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #e4e9ee;
+  --line: #cdd5dd;
+  --ink: #141a21;
+  --ink-2: #47535e;
+  --ink-3: #74808c;
+  --accent: #1f6fd6;
+  --accent-ink: #ffffff;
+  --ship: #2a78d6;
+  --booster: #eb6834;
+  --plasma: #ff6a2a;
+  --good: #1a8f4c;
+  --warn: #b57a00;
+  --bad: #d23c3c;
+  --grid: #dfe5eb;
+  --shadow: 0 1px 2px rgba(20, 26, 33, 0.06), 0 8px 24px rgba(20, 26, 33, 0.06);
+  --font-body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f1419;
+    --surface: #161c23;
+    --surface-2: #1e262f;
+    --line: #2a343f;
+    --ink: #e8edf2;
+    --ink-2: #aab5c0;
+    --ink-3: #7d8994;
+    --accent: #4f9df5;
+    --accent-ink: #0b1220;
+    --ship: #3987e5;
+    --booster: #d95926;
+    --plasma: #ff7a3d;
+    --good: #3cb371;
+    --warn: #e0a020;
+    --bad: #ef6b6b;
+    --grid: #232d38;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1419;
+  --surface: #161c23;
+  --surface-2: #1e262f;
+  --line: #2a343f;
+  --ink: #e8edf2;
+  --ink-2: #aab5c0;
+  --ink-3: #7d8994;
+  --accent: #4f9df5;
+  --accent-ink: #0b1220;
+  --ship: #3987e5;
+  --booster: #d95926;
+  --plasma: #ff7a3d;
+  --good: #3cb371;
+  --warn: #e0a020;
+  --bad: #ef6b6b;
+  --grid: #232d38;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-inline: clamp(16px, 3vw, 40px);
+  padding-block: 0 48px;
+}
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+p { margin: 0; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Header */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-block: 16px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.top h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.01em; }
+.brand { padding-bottom: 12px; }
+.tabs { display: flex; gap: 4px; }
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  color: var(--ink-2);
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+main { max-width: 1200px; margin-inline: auto; padding-top: 20px; }
+.view { display: grid; gap: 20px; }
+.view[hidden] { display: none; }
+
+/* Flight view */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.scene-wrap {
+  position: relative;
+  min-width: 0;
+  background: #0b1020;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.scene-wrap svg { display: block; width: 100%; height: auto; max-width: 100%; }
+.clock {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(6, 10, 20, 0.72);
+  color: #eaf2ff;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+.clock small { font-size: 11px; letter-spacing: 0.12em; color: #9fb3cc; margin-right: 8px; font-family: var(--font-display); font-weight: 600; }
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.panel h2 { font-size: 34px; font-weight: 700; }
+.panel .who { display: inline-flex; align-items: center; gap: 6px; }
+.panel .who::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--ink-3); }
+.panel .who[data-who="booster"]::before { background: var(--booster); }
+.panel .who[data-who="ship"]::before { background: var(--ship); }
+.panel .who[data-who="stack"]::before { background: linear-gradient(180deg, var(--ship) 50%, var(--booster) 50%); }
+.panel p.desc { color: var(--ink); font-size: 15.5px; max-width: 62ch; }
+.panel p.meanwhile { color: var(--ink-2); font-size: 14px; border-left: 3px solid var(--line); padding-left: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { padding: 8px 10px; background: var(--surface-2); border-radius: 4px; min-width: 0; }
+.tile .k { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-family: var(--font-display); font-weight: 600; }
+.tile .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
+.tile .v small { font-size: 11px; color: var(--ink-3); margin-left: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips .k { flex-basis: 100%; }
+.chip {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Controls */
+.controls {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+.control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-2);
+  cursor: pointer;
+  font-weight: 500;
+}
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-width: 96px; font-weight: 600; }
+.btn svg { width: 14px; height: 14px; fill: currentColor; }
+.speed { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.speed button { border: 0; background: transparent; padding: 0 10px; height: 34px; cursor: pointer; font-family: var(--font-mono); font-size: 13px; color: var(--ink-2); }
+.speed button + button { border-left: 1px solid var(--line); }
+.speed button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.hint { color: var(--ink-3); font-size: 13px; margin-left: auto; }
+.timeline { position: relative; padding-top: 22px; padding-bottom: 22px; }
+.timeline input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.markers { position: absolute; left: 0; right: 0; top: 0; height: 100%; pointer-events: none; }
+.marker { position: absolute; top: 24px; width: 2px; height: 14px; margin-left: -1px; background: var(--ink-3); opacity: 0.6; pointer-events: auto; cursor: pointer; }
+.marker[data-who="ship"] { background: var(--ship); }
+.marker[data-who="booster"] { background: var(--booster); }
+.marker.current { opacity: 1; height: 18px; top: 22px; }
+.mlabel {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.mlabel.below { top: auto; bottom: 0; }
+.mlabel:hover { color: var(--accent); }
+.axis-note { color: var(--ink-3); font-size: 12.5px; }
+
+/* Charts */
+.charts { display: grid; gap: 12px; }
+.chart {
+  position: relative;
+  padding: 12px 14px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+.chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.chart-head h3 { font-size: 18px; font-weight: 600; }
+.legend { display: flex; gap: 14px; font-size: 13px; color: var(--ink-2); }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--sw); }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart text { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-3); }
+.chart .dl { font-family: var(--font-body); font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+.chart .grid line { stroke: var(--grid); }
+.chart .axis line { stroke: var(--line); }
+.chart .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .playhead line { stroke: var(--ink); stroke-width: 1.5; }
+.chart .playhead circle { stroke: var(--surface); stroke-width: 2; }
+.chart .cross line { stroke: var(--ink-3); stroke-dasharray: 3 3; }
+.tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 6px 9px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translate(-50%, -110%);
+  display: none;
+}
+.tip b { font-family: var(--font-body); font-weight: 600; }
+.note { color: var(--ink-3); font-size: 13px; max-width: 80ch; }
+
+/* Vehicle view */
+.anatomy { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.anatomy figure { margin: 0; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+.anatomy figure svg { display: block; width: 100%; height: auto; }
+.anatomy figcaption { color: var(--ink-3); font-size: 13px; margin-top: 6px; }
+.anatomy .callout { cursor: pointer; }
+.anatomy .callout text { font-family: var(--font-body); font-size: 12.5px; fill: var(--ink-2); }
+.anatomy .callout line { stroke: var(--ink-3); stroke-width: 1; }
+.anatomy .callout:hover text, .anatomy .callout.active text { fill: var(--accent); font-weight: 600; }
+.anatomy .callout:hover line, .anatomy .callout.active line { stroke: var(--accent); }
+.anatomy .hit { fill: transparent; cursor: pointer; }
+.anatomy .hit.active { fill: var(--accent); fill-opacity: 0.25; stroke: var(--accent); stroke-width: 1.5; }
+.anatomy .hit:hover { fill: var(--accent); fill-opacity: 0.12; }
+.part-panel { display: flex; flex-direction: column; gap: 12px; }
+.part-card { padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+.part-card h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.part-card p { max-width: 60ch; }
+.part-card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 12px 0 0; font-size: 14px; }
+.part-card dt { color: var(--ink-3); }
+.part-card dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.compare { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+.compare h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.compare svg { display: block; width: 100%; height: auto; }
+.compare text { font-size: 12px; fill: var(--ink-2); font-family: var(--font-body); }
+.compare .num { font-family: var(--font-mono); fill: var(--ink-3); }
+.compare rect.bar { fill: var(--line); }
+.compare rect.bar.hero { fill: var(--accent); }
+
+/* Technology view */
+.intro { max-width: 70ch; color: var(--ink-2); font-size: 16px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.card {
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 110px;
+}
+.card.wide { grid-column: 1 / -1; }
+.card h3 { font-size: 26px; font-weight: 700; }
+.card .lead { font-weight: 600; color: var(--ink); }
+.card p { color: var(--ink-2); max-width: 66ch; }
+.card dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 4px 0 0; }
+.card dl div { background: var(--surface-2); padding: 8px 10px; border-radius: 4px; }
+.card dt { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-family: var(--font-display); font-weight: 600; }
+.card dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 15px; }
+.card figure { margin: 8px 0 0; }
+.card figure svg { display: block; width: 100%; height: auto; max-width: 760px; margin-inline: auto; color: var(--ink); }
+.card figcaption { color: var(--ink-3); font-size: 13px; margin-top: 6px; }
+.card .fig-text { font-family: var(--font-body); font-size: 12px; fill: currentColor; }
+.card .fig-muted { fill: var(--ink-3); }
+.card .used-in { font-size: 13px; color: var(--ink-3); }
+.card .used-in button { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.card.flash { outline: 2px solid var(--accent); }
+
+/* Flight log */
+.log-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
+table.log { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 14px; }
+table.log th { text-align: left; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px; color: var(--ink-3); padding: 12px 14px; border-bottom: 1px solid var(--line); }
+table.log td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.log tr:last-child td { border-bottom: 0; }
+table.log td.n { font-family: var(--font-mono); font-weight: 500; }
+table.log td.date { white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+table.log tr.planned td { color: var(--ink-3); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 6px; white-space: nowrap; }
+.pill.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.pill.partial { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.pill.lost { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.pill.plan { background: var(--surface-2); color: var(--ink-3); }
+.sources { color: var(--ink-3); font-size: 13px; max-width: 90ch; }
+.sources a { color: var(--ink-2); }
+
+@media (max-width: 860px) {
+  .stage, .anatomy { grid-template-columns: 1fr; }
+  .panel h2 { font-size: 28px; }
+  .tiles { grid-template-columns: repeat(3, 1fr); }
+  .top h1 { font-size: 26px; }
+}
+@media (max-width: 520px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .tabs button { padding: 10px 9px; font-size: 15px; }
+  .clock { font-size: 17px; }
+  .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card.flash { transition: none; }
+}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow">SpaceX Starship V3 &middot; Starbase, Texas</div>
+    <h1>Starship Flight Player</h1>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" id="tab-flight" data-view="flight" aria-selected="true" aria-controls="view-flight">Flight</button>
+    <button role="tab" id="tab-vehicle" data-view="vehicle" aria-selected="false" aria-controls="view-vehicle">Vehicle</button>
+    <button role="tab" id="tab-tech" data-view="tech" aria-selected="false" aria-controls="view-tech">Technology</button>
+    <button role="tab" id="tab-log" data-view="log" aria-selected="false" aria-controls="view-log">Flight log</button>
+  </nav>
+</header>
+
+<main>
+  <section class="view" id="view-flight" role="tabpanel" aria-labelledby="tab-flight">
+    <div class="stage">
+      <div class="scene-wrap">
+        <svg id="scene" viewBox="0 0 900 520" role="img" aria-label="Schematic side view of the Starship stack during the current flight phase"></svg>
+        <div class="clock"><small>T</small><span id="clock">+00:00:00</span></div>
+      </div>
+      <aside class="panel" aria-live="polite">
+        <div class="eyebrow"><span id="phase-index">Phase 1 of 18</span> &middot; <span class="who" id="phase-who" data-who="stack">Full stack</span></div>
+        <h2 id="phase-name">Final countdown</h2>
+        <p class="desc" id="phase-desc"></p>
+        <p class="meanwhile" id="phase-meanwhile" hidden></p>
+        <div class="tiles">
+          <div class="tile"><div class="k">Altitude</div><div class="v" id="tile-alt">0.0<small>km</small></div></div>
+          <div class="tile"><div class="k">Speed</div><div class="v" id="tile-spd">0<small>km/h</small></div></div>
+          <div class="tile"><div class="k">Engines lit</div><div class="v" id="tile-eng">0</div></div>
+        </div>
+        <div class="chips" id="phase-tech"><span class="k eyebrow">Technology in play</span></div>
+      </aside>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <button class="btn" id="btn-prev" title="Previous event (Shift+Left)" aria-label="Previous event"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM13 2v12L6 8z"/></svg></button>
+        <button class="btn primary" id="btn-play" aria-label="Play"><svg viewBox="0 0 16 16" id="icon-play"><path d="M4 2l10 6-10 6z"/></svg><span id="play-label">Play</span></button>
+        <button class="btn" id="btn-next" title="Next event (Shift+Right)" aria-label="Next event"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM3 2v12l7-6z"/></svg></button>
+        <div class="speed" role="group" aria-label="Playback speed" id="speed"></div>
+        <button class="btn" id="btn-restart">Restart</button>
+        <span class="hint">Space plays, arrow keys scrub 5 s, Shift+arrows jump between events</span>
+      </div>
+      <div class="timeline">
+        <div class="markers" id="markers"></div>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Flight time">
+      </div>
+      <div class="axis-note">The first ten minutes are stretched to half the width so launch events stay readable. Coast, reentry and landing fill the rest.</div>
+    </div>
+
+    <div class="charts">
+      <div class="chart" id="chart-alt">
+        <div class="chart-head"><h3>Altitude</h3><div class="legend"><span style="--sw: var(--ship)">Ship</span><span style="--sw: var(--booster)">Booster</span></div></div>
+      </div>
+      <div class="chart" id="chart-spd">
+        <div class="chart-head"><h3>Speed</h3><div class="legend"><span style="--sw: var(--ship)">Ship</span><span style="--sw: var(--booster)">Booster</span></div></div>
+      </div>
+    </div>
+    <p class="note">Profile: a nominal Starship V3 test flight from Starbase to the Indian Ocean, built from the published event times of Flights 11 and 13. Altitude and speed curves are smoothed approximations of webcast telemetry, not flight data. The booster is shown ending in a tower catch, demonstrated on Flights 5, 7 and 8; V3 boosters have so far ended in Gulf splashdowns.</p>
+  </section>
+
+  <section class="view" id="view-vehicle" role="tabpanel" aria-labelledby="tab-vehicle" hidden>
+    <p class="intro">Two stages, one diameter, one material. Click any label or part to read what it does. Dimensions are Starship V3 (Block 3), the version flying since May 2026.</p>
+    <div class="anatomy">
+      <figure>
+        <svg id="anatomy" viewBox="0 0 900 700" role="img" aria-label="Labelled side view of the 124 m Starship V3 stack: ship on top, Super Heavy booster below"></svg>
+        <figcaption>Side view, windward (heat-shield) side on the right. Not every internal detail is drawn; tanks and domes are shown schematically.</figcaption>
+      </figure>
+      <div class="part-panel">
+        <div class="part-card" id="part-card"></div>
+        <div class="compare">
+          <h3>Height comparison</h3>
+          <svg id="compare" viewBox="0 0 420 150" role="img" aria-label="Bar chart comparing heights: Starship V3 124.4 m, Saturn V 110.6 m, Statue of Liberty 93 m, Falcon 9 70 m"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-tech" role="tabpanel" aria-labelledby="tab-tech" hidden>
+    <p class="intro">Starship is unusual less for any single invention than for combining a handful of hard choices: a full-flow engine, methane fuel, cheap steel, and catching both stages instead of landing them. Each card explains one choice, and which flight phases depend on it.</p>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section class="view" id="view-log" role="tabpanel" aria-labelledby="tab-log" hidden>
+    <p class="intro">Thirteen integrated test flights in three years. Read down the Booster and Ship columns to see how each stage progressed independently, and how V2 and V3 introductions reset the ship's learning curve.</p>
+    <div class="log-wrap">
+      <table class="log" id="log">
+        <thead><tr><th>Flight</th><th>Date</th><th>Vehicles</th><th>Booster</th><th>Ship</th><th>Why it mattered</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="sources">Sources: SpaceX flight pages (spacex.com/launches), Wikipedia articles on the Starship flight tests, Super Heavy, the Starship spacecraft and the Raptor engine, and NASASpaceflight.com coverage of Flight 13. Numbers such as Raptor 3 thrust differ between SpaceX statements (280 tf) and independent estimates (250 tf); ranges are given where sources disagree.</p>
+  </section>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Data. Times are seconds from liftoff. Altitude km, speed km/h, pitch is the
+// angle of the nose from vertical, positive toward the direction of travel.
+// ---------------------------------------------------------------------------
+const T_START = -30;
+const T_END = 3990;
+const T_STAGING = 142;
+const T_CATCH = 400;
+
+const PHASES = [
+  { t: -30, id: 'countdown', who: 'stack', name: 'Final countdown', engines: '0 to 33',
+    desc: 'Both stages hold about 5,000 t of subcooled liquid methane and liquid oxygen. Tanks pressurise, the water-cooled steel flame deflector under the launch mount starts flooding at about T-10 s, and the 33 Raptors ignite in a staggered sequence from about T-3 s. The hold-down clamps let go only once every engine reports healthy thrust.',
+    tech: ['methalox', 'starbase', 'raptor'] },
+  { t: 0, id: 'liftoff', who: 'stack', name: 'Liftoff', engines: '33',
+    desc: 'Thirty-three Raptor 3 engines push with roughly 85 to 90 MN, around 9,000 tonnes-force, against a stack of about 6,100 t: a thrust-to-weight ratio near 1.5. The stack clears the tower in about ten seconds. Methane burning with oxygen gives a mostly translucent blue plume instead of the orange of kerosene rockets.',
+    tech: ['raptor', 'steel', 'methalox'] },
+  { t: 15, id: 'pitch', who: 'stack', name: 'Pitch-over and gravity turn', engines: '33',
+    desc: 'The 13 inner engines gimbal to tip the stack slightly east, out over the Gulf. From here on gravity does most of the steering: the vehicle keeps its nose along its velocity vector and the arc bends steadily toward horizontal, because orbital speed is sideways speed.',
+    tech: ['raptor'] },
+  { t: 55, id: 'maxq', who: 'stack', name: 'Max Q', engines: '33, throttled',
+    desc: 'Maximum dynamic pressure: air density times speed squared peaks about a minute in, near 10 km altitude, as the stack goes supersonic. Aerodynamic loads on the structure are highest here, so the engines throttle down briefly and come back up as the air thins.',
+    tech: ['steel'] },
+  { t: 140, id: 'meco', who: 'stack', name: 'MECO', engines: '3',
+    desc: 'Most Engines Cut Off. The 20 fixed outer engines and 10 of the middle ring shut down, leaving only the three gimballing centre engines running. The booster has done its share: about 65 km up, 5,500 km/h, and above the thick atmosphere.',
+    tech: ['raptor'] },
+  { t: 142, id: 'hotstage', who: 'stack', name: 'Hot staging', engines: '3 booster + 6 ship',
+    desc: 'The ship lights all six of its engines while still bolted to the booster. Exhaust escapes through the vented interstage at the top of the booster and the ship simply pulls away under thrust. Conventional rockets coast through separation; skipping that pause adds a few percent of payload. Starship is by far the largest vehicle to stage this way.',
+    tech: ['hotstaging', 'raptor'] },
+  { t: 147, id: 'boostback', who: 'booster', name: 'Booster flip and boostback burn', engines: '13 (V3: up to 33)',
+    desc: 'Still bathed in the ship\'s exhaust, the booster uses its three running centre engines to swing around 180 degrees, then relights the middle ring for the boostback burn. On V3 all 33 engines can join for the high-thrust part. The burn cancels the eastward speed and aims the booster back at Starbase, now some 80 km behind it.',
+    meanwhile: 'Meanwhile the ship\'s three sea-level and three vacuum Raptors keep accelerating it toward 26,000 km/h.',
+    tech: ['hotstaging', 'raptor'] },
+  { t: 215, id: 'bcoast', who: 'booster', name: 'Booster coast and entry', engines: '0',
+    desc: 'Engines off, the booster arcs over the top near 90 km and falls back engines-first, reaching about 4,000 km/h before the air thickens. The three large grid fins near the top steer it like the flights on a dart, using the airflow itself for control. On V3 they also carry the catch points.',
+    meanwhile: 'Meanwhile the ship is passing 100 km, still under power.',
+    tech: ['gridfins', 'steel'] },
+  { t: 380, id: 'blanding', who: 'booster', name: 'Booster landing burn', engines: '13, then 3',
+    desc: 'About a kilometre up and still doing 1,200 km/h, thirteen engines relight to brake hard, then shut down to the three centre engines for the final hover. It is the divert-then-hover sequence Falcon 9 pioneered, scaled up roughly tenfold in mass.',
+    meanwhile: 'Meanwhile the ship is above 140 km at 20,000 km/h.',
+    tech: ['raptor', 'gridfins'] },
+  { t: 400, id: 'catch', who: 'booster', name: 'Tower catch', engines: '0',
+    desc: 'The tower\'s two arms, the "chopsticks", close around the hovering booster so that pins beneath the grid fins settle onto rails on the arms. No landing legs, no landing pad, and the booster is already at the tower that will restack and refuel it. Demonstrated on Flights 5, 7 and 8; V3 boosters have so far ended in Gulf splashdowns while the new catch hardware is qualified.',
+    meanwhile: 'Meanwhile the ship has two more minutes of burn before engine cutoff.',
+    tech: ['gridfins', 'starbase'] },
+  { t: 530, id: 'seco', who: 'ship', name: 'SECO: ship engine cutoff', engines: '0',
+    desc: 'Second-stage Engine Cut Off at about 150 km and 26,400 km/h. That is deliberately a fraction below orbital velocity. With no further burn the ship is guaranteed to come down half a world away in the Indian Ocean, even if every later step fails, which is why test flights are flown this way.',
+    tech: ['raptor', 'methalox'] },
+  { t: 1000, id: 'deploy', who: 'ship', name: 'Payload deployment', engines: '0',
+    desc: 'The payload door opens and the PEZ dispenser pushes flat-packed Starlink satellites out one at a time, 20 of them totalling about 34 t on Flight 13. Flat satellites stacked like sweets in a dispenser use the full 9 m width of the ship without any fairing to throw away.',
+    tech: ['pez'] },
+  { t: 2330, id: 'relight', who: 'ship', name: 'In-space Raptor relight', engines: '1, briefly',
+    desc: 'One engine relights for a few seconds in vacuum. Small as it looks, this is the capability that lets a future orbital Starship deorbit on command, so it is a gate that must be passed before the vehicle is allowed to go all the way to orbit.',
+    tech: ['raptor', 'header'] },
+  { t: 2860, id: 'entry', who: 'ship', name: 'Entry interface', engines: '0',
+    desc: 'Near 100 km the air becomes thick enough to matter. The ship comes in belly-first at a high angle of attack so the tiled side takes the brunt. Kinetic energy turns into heat: the shock layer ahead of the hull reaches thousands of degrees and glows as plasma, and the vehicle rides that layer like a surfboard.',
+    tech: ['heatshield', 'flaps'] },
+  { t: 3200, id: 'heating', who: 'ship', name: 'Peak heating', engines: '0',
+    desc: 'Around 60 to 70 km the tiles reach about 1,400 C. Roughly 18,000 hexagonal silica tiles on the windward side radiate the heat back out, with an ablative layer underneath as a backstop. The four flaps trim pitch and roll. The bare stainless steel on the lee side tolerates temperatures carbon composites could not.',
+    tech: ['heatshield', 'flaps', 'steel'] },
+  { t: 3810, id: 'flop', who: 'ship', name: 'Belly flop', engines: '0',
+    desc: 'Now subsonic, the ship falls flat like a skydiver, using its whole body as a drag brake and its flaps for balance. Terminal velocity is only a few hundred km/h, which is what makes the final powered landing cheap in propellant.',
+    tech: ['flaps', 'header'] },
+  { t: 3960, id: 'flip', who: 'ship', name: 'Landing flip and burn', engines: '3, then 2',
+    desc: 'Three sea-level engines ignite while the ship is still horizontal and swing it upright. Propellant comes from small header tanks in the nose and aft that stay settled through the flip while the main tanks would slosh. The burn steps from three engines to two for the hover.',
+    tech: ['header', 'raptor', 'flaps'] },
+  { t: 3985, id: 'splash', who: 'ship', name: 'Splashdown', engines: '0',
+    desc: 'On test flights the ship hovers over the Indian Ocean and settles into the water, close enough to a buoy camera to be filmed. The plan is for it to be caught by tower arms exactly like the booster, closing the loop on full reusability.',
+    tech: ['starbase', 'gridfins'] }
+];
+
+// Keyframes: [t, altitude km, speed km/h, pitch deg]
+const SHIP_TRACK = [
+  [-30, 0, 0, 0], [0, 0, 0, 0], [10, 0.15, 60, 0], [20, 0.7, 200, 3], [40, 3.5, 650, 12],
+  [60, 9.5, 1150, 22], [90, 22, 2300, 38], [120, 42, 3900, 50], [140, 63, 5500, 58],
+  [150, 68, 5600, 60], [180, 82, 6800, 65], [240, 106, 9500, 70], [300, 124, 12800, 75],
+  [360, 138, 16500, 80], [420, 146, 20500, 84], [480, 150, 24500, 87], [530, 152, 26400, 90],
+  [900, 175, 26200, 90], [1400, 190, 26000, 90], [1700, 192, 26000, 90], [2200, 170, 26100, 90],
+  [2600, 135, 26300, 90], [2720, 122, 26400, 90], [2860, 100, 26500, 30], [3000, 82, 25500, 32], [3200, 65, 21000, 35],
+  [3400, 48, 12000, 45], [3600, 30, 4000, 70], [3810, 12, 1200, 90], [3900, 4, 450, 90],
+  [3960, 0.8, 300, 90], [3975, 0.3, 120, 20], [3985, 0, 0, 0], [3990, 0, 0, 0]
+];
+const BOOSTER_TRACK = [
+  [142, 64, 5500, 58], [150, 68, 5300, 270], [180, 84, 3300, 265], [210, 90, 1300, 260],
+  [230, 91, 1100, 320], [280, 80, 2200, 355], [340, 31, 3900, 360], [360, 12, 3000, 360],
+  [380, 1.2, 1200, 360], [390, 0.3, 350, 360], [398, 0.06, 40, 360], [400, 0.045, 0, 360], [3990, 0.045, 0, 360]
+];
+
+// Engine plume schedule: [tStart, tEnd, enginesLit, throttle]
+const STACK_PLUME = [[-3, 0, 33, 0.4], [0, 50, 33, 1], [50, 65, 33, 0.7], [65, 140, 33, 1], [140, 142, 3, 1]];
+const BOOSTER_PLUME = [[142, 150, 3, 1], [150, 160, 33, 1], [160, 212, 13, 1], [380, 392, 13, 1], [392, 399, 3, 0.8]];
+const SHIP_PLUME = [[142, 530, 6, 1], [2330, 2338, 1, 1], [3960, 3978, 3, 1], [3978, 3985, 2, 0.7]];
+
+const TECH = [
+  { id: 'raptor', name: 'Raptor 3 engine', lead: 'The most powerful engine per kilogram ever flown, and the first full-flow staged combustion engine to reach orbit-class flight.',
+    body: [
+      'A rocket engine needs pumps to force propellant into a chamber running at hundreds of atmospheres. Most engines burn a little propellant in a preburner to spin those pumps and then throw that exhaust away, or run it fuel-rich through one turbine. Raptor uses two preburners: an oxygen-rich one drives the oxygen pump and a fuel-rich one drives the methane pump. Every gram of propellant then goes into the main chamber as hot gas, so nothing is wasted and both turbines run cooler than in a single-shaft design. That is what "full flow" means, and the cooler turbines are what make many reflights plausible.',
+      'Raptor 3 removes the external plumbing and heat shielding of earlier versions by casting channels into the parts themselves, which is why the booster needs no separate engine shields and why the engine weighs less than its predecessor while producing more thrust.'
+    ],
+    facts: [['Sea-level thrust', '250 to 280 tf'], ['Chamber pressure', '330 to 350 bar'], ['Mass', '1,525 kg'], ['Thrust to weight', 'above 160'], ['Throttle range', '40 to 100 %'], ['Propellant', 'CH4 + LOX, 3.6 : 1']],
+    used: ['liftoff', 'hotstage', 'blanding', 'flip'],
+    figure: 'ffsc' },
+  { id: 'methalox', name: 'Methalox propellant', lead: 'Liquid methane and liquid oxygen, chilled below their boiling points so more fits in the tanks.',
+    body: [
+      'Kerosene, the fuel of Falcon 9 and Saturn V, leaves soot in engines and is hard to make off Earth. Hydrogen is efficient but so fluffy it needs enormous tanks and leaks through everything. Methane sits between them: dense enough for compact tanks, clean-burning so engines can be reused without teardown, and makeable on Mars from carbon dioxide and water using the Sabatier reaction. Both propellants are cryogenic and stored at similar temperatures, which simplifies the tanks and lets the two share a common dome.',
+      'Subcooling, chilling the liquids 10 to 20 degrees below boiling, makes them denser and stops bubbles forming in the pumps, but it also means the vehicle must launch soon after loading or vent and re-chill.'
+    ],
+    facts: [['Booster propellant', 'about 3,650 t'], ['Ship propellant', 'about 1,500 t'], ['Oxidiser to fuel', '3.6 : 1 by mass'], ['Methane boiling point', '-162 C'], ['Oxygen boiling point', '-183 C']],
+    used: ['countdown', 'liftoff', 'seco'] },
+  { id: 'steel', name: 'Stainless steel hull', lead: 'Rocket bodies are usually aluminium or carbon fibre. Starship is 4 mm stainless steel, welded from 9 m rings.',
+    body: [
+      'Steel is heavier than carbon fibre at room temperature, but at cryogenic temperatures it gets stronger rather than brittle, and at reentry temperatures it keeps its strength long after composites would char. That means the lee side of the ship needs no heat shield at all, and the windward side needs a thinner one. Steel also costs a few dollars per kilogram and can be welded outdoors in a Texas field, which is exactly how Starbase builds it.',
+      'Each ring is rolled from a coil, welded into a 9 m cylinder about 1.8 m tall, then stacked and robot-welded into tank sections. The booster and ship together contain more than 60 such rings.'
+    ],
+    facts: [['Alloy', '304L stainless'], ['Skin thickness', '3.97 mm'], ['Ring height', 'about 1.8 m'], ['Diameter', '9 m'], ['Full-stack height (V3)', '124.4 m']],
+    used: ['liftoff', 'maxq', 'heating'] },
+  { id: 'hotstaging', name: 'Hot staging', lead: 'The ship lights its engines while still attached, and the booster keeps three of its own running through separation.',
+    body: [
+      'Ordinary two-stage rockets shut down the first stage, coast for a moment while springs or small thrusters push the stages apart, and only then light the second stage. During that coast gravity is still pulling the whole vehicle down. Hot staging removes the coast: the ship ignites into a vented ring at the top of the booster, the exhaust blows out sideways through the slots, and thrust itself pulls the stages apart. SpaceX credits the technique with roughly a 10 percent payload gain.',
+      'On V1 and V2 the vented ring was a separate part the booster jettisoned after the flip to save mass on the way home. V3 builds the vents into the top of the methane tank, so there is nothing to throw away.'
+    ],
+    facts: [['First used', 'Flight 2, Nov 2023'], ['Booster engines through staging', '3 centre'], ['Ship engines at ignition', '6'], ['Payload gain', 'about 10 %']],
+    used: ['hotstage', 'boostback'] },
+  { id: 'gridfins', name: 'Grid fins and the tower catch', lead: 'The booster steers home with lattice fins and is caught in mid-air by the launch tower instead of landing on legs.',
+    body: [
+      'A grid fin is a box of thin lattices that acts like a wing in any direction and keeps working at supersonic speeds where a flat fin would stall. Four of them guided Falcon 9 boosters; Super Heavy V3 uses three larger ones set lower on the tank, which trims mass and simplifies the load path into the catch points.',
+      'The tower, nicknamed Mechazilla, has two horizontal arms that open wide, then close as the booster hovers beside them. Pins beneath the fins come to rest on rails along the arms. Catching removes the landing legs, the landing pad and the crane lift that Falcon 9 needs, and puts the booster straight back where the next ship will be stacked on it. The first catch, on Flight 5 in October 2024, came within centimetres of the aim point.'
+    ],
+    facts: [['Grid fins (V3)', '3, electric'], ['Tower arm travel', 'about 30 m'], ['First catch', '13 Oct 2024, Booster 12'], ['Catches so far', '3 (Flights 5, 7, 8)']],
+    used: ['bcoast', 'blanding', 'catch'],
+    figure: 'catch' },
+  { id: 'heatshield', name: 'Heat shield tiles', lead: 'About 18,000 hexagonal ceramic tiles take the heat of reentry so the steel behind them does not.',
+    body: [
+      'Coming back from orbital speed, a vehicle has to shed the same energy it took to get there, and almost all of it becomes heat in the air around the hull. The Space Shuttle solved this with tens of thousands of hand-fitted tiles that took months to service. Starship uses one repeating hexagon, pinned rather than glued, with small gaps for thermal expansion. Hexagons have no straight channels through which hot gas can race, and one shape means spares are interchangeable.',
+      'Since Flight 4 an ablative layer sits under the tiles as insurance, and since Flight 10 a felt fill has been added to the gaps after plasma found its way underneath. Flights have deliberately flown with tiles removed to learn how much margin there is.'
+    ],
+    facts: [['Tile count', 'about 18,000'], ['Material', 'silica-based ceramic'], ['Peak surface temperature', 'about 1,400 C'], ['Shield mass', 'about 10 t'], ['Fixing', 'pins, with expansion gaps']],
+    used: ['entry', 'heating'],
+    figure: 'tiles' },
+  { id: 'flaps', name: 'Flaps and the belly flop', lead: 'Four flaps let the ship fall flat like a skydiver, then hold it steady while it flips upright to land.',
+    body: [
+      'Starship has no wings. Instead it presents its whole belly to the airflow, which gives enormous drag and slows it to a few hundred kilometres per hour without burning any propellant. Two forward and two aft flaps act like the limbs of a skydiver, adjusting drag on each corner to control pitch, roll and yaw. They are driven by electric motors powered from batteries in the nose.',
+      'On V2 and V3 the forward flaps were made smaller, thinner and moved toward the lee side so that plasma no longer wraps around their hinges, which had burned through on Flight 4.'
+    ],
+    facts: [['Flaps', '2 forward, 2 aft'], ['Actuation', 'electric'], ['Terminal velocity, flat', 'a few hundred km/h'], ['Flip to vertical', 'about 1 km altitude']],
+    used: ['entry', 'heating', 'flop', 'flip'] },
+  { id: 'header', name: 'Header tanks', lead: 'Small separate tanks hold the landing propellant where a flip cannot slosh it away from the engines.',
+    body: [
+      'At the end of the belly flop the main tanks are almost empty and, in a horizontal ship, whatever is left would be sloshing along the walls rather than sitting over the engine feed. So Starship keeps a few tens of tonnes of landing propellant in header tanks: a methane header inside the main tank dome and an oxygen header at the very tip of the nose. The nose position doubles as ballast that keeps the centre of mass forward for a stable belly-first descent.',
+      'The same tanks feed the in-space relight test, which is why that demonstration matters for landing as well as for deorbiting.'
+    ],
+    facts: [['LOX header', 'nose tip'], ['CH4 header', 'inside main tank dome'], ['Role', 'landing and relight propellant']],
+    used: ['relight', 'flop', 'flip'] },
+  { id: 'pez', name: 'Payload bay and PEZ dispenser', lead: 'A slot door and a sliding rack push flat satellites out one at a time, no fairing required.',
+    body: [
+      'Because Starship returns whole, its payload cannot be sealed under a throwaway fairing. Instead the nose has a long door on the lee side and, behind it, a rack that holds Starlink V3 satellites stacked flat like sweets in a PEZ dispenser. A pusher moves the stack forward and each satellite slides out of the slot in turn. Flight 10 tested the mechanism with eight mass simulators; Flight 13 deployed twenty real satellites of about 1.7 t each.',
+      'For other customers SpaceX plans a conventional chomper-style nose that opens wide, but the slot is the design that flies today.'
+    ],
+    facts: [['Flight 13 payload', '20 Starlink V3, about 34 t'], ['Deployment window', 'about 11 minutes'], ['Target payload, reusable V3', 'over 100 t to LEO']],
+    used: ['deploy'] },
+  { id: 'refill', name: 'Orbital refilling', lead: 'The trick that turns Starship from a big launcher into a Moon and Mars vehicle: fill it up again in orbit.',
+    body: [
+      'Reaching low Earth orbit uses almost all of the ship\'s propellant. To go on to the Moon or Mars it must be refilled by tanker Starships that dock and transfer methane and oxygen through connectors at the tail. Estimates run from roughly eight to more than a dozen tanker flights per lunar mission, which is why the whole design is built around rapid, cheap reflight.',
+      'Flight 3 in March 2024 moved about 10 t of oxygen between two tanks inside one ship to test the plumbing in weightlessness. A ship-to-ship demonstration is the next milestone NASA needs for the Artemis lunar lander version of Starship.'
+    ],
+    facts: [['Tanker flights per lunar trip', 'about 8 to 15'], ['First in-tank transfer', 'Flight 3, Mar 2024'], ['Next step', 'ship-to-ship transfer demo']],
+    used: ['seco'] },
+  { id: 'starbase', name: 'Starbase and the launch mount', lead: 'A launch pad that also has to survive 9,000 tonnes-force of exhaust and then catch what it launched.',
+    body: [
+      'The stack sits on a steel orbital launch mount about 20 m above the ground with 20 hold-down clamps. Under it is a water-cooled steel plate, the flame deflector: thousands of holes spray water upward during ignition so the exhaust hits a curtain of steam rather than bare concrete. Flight 1 in 2023 launched without it and dug a crater under the pad, which is why it exists.',
+      'The tower beside the mount is about 146 m tall. Its arms lift the stages onto the mount, hold the ship steady while the booster is fuelled, and catch the returning booster. A second pad at Starbase and pads at Cape Canaveral are being built to the same pattern.'
+    ],
+    facts: [['Launch mount height', 'about 20 m'], ['Tower height', 'about 146 m'], ['Deluge', 'water-cooled steel plate'], ['Location', 'Boca Chica, Texas']],
+    used: ['countdown', 'catch', 'splash'] }
+];
+
+// Vehicle anatomy parts. y0/y1 in metres from the top of the stack; side is
+// where the label goes. Windward side is drawn on the right.
+const STACK_H = 124.4;
+const SHIP_H = 52.1;
+const PARTS = [
+  { id: 'header', name: 'Nose cone and LOX header tank', y0: 0, y1: 8, side: 'left',
+    text: 'The tip holds the oxygen header tank for landing propellant, and its mass keeps the centre of gravity forward for a stable belly-first descent. Batteries for the flap motors sit just below it.',
+    facts: [['Contains', 'LOX header, batteries'], ['Role', 'landing propellant, ballast']] },
+  { id: 'fflaps', name: 'Forward flaps', y0: 9, y1: 19, side: 'right',
+    text: 'Two smaller flaps near the nose. On V2 and V3 they are thinner and set toward the lee side so plasma does not wrap around the hinges. Together with the aft flaps they steer the belly flop.',
+    facts: [['Count', '2'], ['Drive', 'electric']] },
+  { id: 'bay', name: 'Payload bay and PEZ door', y0: 8, y1: 24, side: 'left',
+    text: 'About 16 m of bay behind a slot door on the lee side. A sliding rack pushes flat Starlink satellites out one by one. Flight 13 deployed 20 of them, about 34 t.',
+    facts: [['Length', 'about 16 m'], ['Flight 13 payload', '20 Starlink V3']] },
+  { id: 'shiplox', name: 'Ship oxygen tank', y0: 24, y1: 36, side: 'left',
+    text: 'Liquid oxygen at -183 C. The ship carries about 1,500 t of propellant in total, three quarters of it oxygen by mass. A common dome separates it from the methane below.',
+    facts: [['Propellant (ship)', 'about 1,500 t'], ['Oxidiser share', 'about 78 %']] },
+  { id: 'shipch4', name: 'Ship methane tank', y0: 36, y1: 46, side: 'left',
+    text: 'Liquid methane at -162 C. The methane header tank for landing sits inside this tank\'s dome. Four downcomers route propellant past it to the engines.',
+    facts: [['Contains', 'CH4 header tank'], ['Downcomers', '4']] },
+  { id: 'aflaps', name: 'Aft flaps', y0: 38, y1: 52, side: 'right',
+    text: 'Two large flaps at the tail, the main drag and control surfaces during the belly flop. Their hinges are shielded because they sit fully in the plasma flow.',
+    facts: [['Count', '2'], ['Position', 'windward corners']] },
+  { id: 'tiles', name: 'Heat shield', y0: 4, y1: 52, side: 'right',
+    text: 'About 18,000 hexagonal silica tiles cover the windward half of the ship, pinned to the steel with expansion gaps and backed by an ablative layer. They reach about 1,400 C during peak heating.',
+    facts: [['Tiles', 'about 18,000'], ['Peak temperature', 'about 1,400 C']] },
+  { id: 'shipeng', name: 'Ship engines', y0: 46, y1: 53, side: 'left',
+    text: 'Three sea-level Raptors in the centre that gimbal for control and landing, and three vacuum Raptors with large nozzles around them for efficiency in space. Block 4 ships will carry six vacuum engines.',
+    facts: [['Sea-level Raptors', '3, gimballing'], ['Vacuum Raptors', '3, fixed'], ['Ship thrust', 'about 15 MN']] },
+  { id: 'interstage', name: 'Vented interstage', y0: 52, y1: 56, side: 'right',
+    text: 'The top of the booster is a ring of slots. During hot staging the ship\'s exhaust blasts out through them while the booster is still attached. On V3 it is part of the methane tank structure rather than a separate jettisoned ring.',
+    facts: [['Function', 'hot-staging exhaust vent'], ['V3 change', 'integrated, not jettisoned']] },
+  { id: 'gridfins', name: 'Grid fins and catch pins', y0: 56, y1: 64, side: 'left',
+    text: 'Three electrically driven lattice fins steer the booster during its fall. The pins the tower arms catch are built into the same structure, so the landing loads run straight into the strongest part of the tank.',
+    facts: [['Fins', '3 (4 on V1 and V2)'], ['Arrangement', '90 / 90 / 180 degrees']] },
+  { id: 'bch4', name: 'Booster methane tank', y0: 56, y1: 82, side: 'right',
+    text: 'The upper booster tank holds liquid methane. Fuel reaches the engines through a transfer tube running down through the oxygen tank below.',
+    facts: [['Propellant (booster)', 'about 3,650 t']] },
+  { id: 'blox', name: 'Booster oxygen tank', y0: 82, y1: 115, side: 'left',
+    text: 'The largest single volume on the vehicle. About 2,800 t of liquid oxygen sits here at liftoff, which is why the stack weighs some 6,100 t on the pad.',
+    facts: [['Liftoff mass (stack)', 'about 6,100 t']] },
+  { id: 'beng', name: 'Booster engines', y0: 115, y1: 124.4, side: 'right',
+    text: 'Thirty-three Raptor 3 engines: 13 inner engines that gimbal for steering and landing, and 20 fixed outer engines. Together they produce roughly 85 to 90 MN at liftoff, more than twice Saturn V.',
+    facts: [['Engines', '33 Raptor 3'], ['Gimballing', '13 inner'], ['Liftoff thrust', '85 to 90 MN']] }
+];
+
+const FLIGHTS = [
+  { n: 1, date: '2023-04-20', veh: 'B7 / S24 (V1)', b: ['lost', 'Several engines out, lost steering, flight terminated at about T+4 min'], s: ['lost', 'Never separated'], why: 'First integrated launch. The pad had no deluge plate and was badly damaged; the water-cooled deflector was built afterwards.' },
+  { n: 2, date: '2023-11-18', veh: 'B9 / S25 (V1)', b: ['lost', 'Exploded shortly after boostback burn'], s: ['lost', 'Lost near engine cutoff after an oxygen vent started a fire'], why: 'First hot staging and first time all 33 engines ran to MECO.' },
+  { n: 3, date: '2024-03-14', veh: 'B10 / S28 (V1)', b: ['lost', 'Broke up during landing burn'], s: ['partial', 'Reached space and coasted; lost during reentry at about 65 km'], why: 'First payload door test and first in-tank propellant transfer in weightlessness.' },
+  { n: 4, date: '2024-06-06', veh: 'B11 / S29 (V1)', b: ['good', 'Soft splashdown in the Gulf'], s: ['good', 'Survived reentry with a burning flap and splashed down under control'], why: 'First time both stages came back intact. Showed the flaps and tiles could take the heat with margin to spare.' },
+  { n: 5, date: '2024-10-13', veh: 'B12 / S30 (V1)', b: ['good', 'Caught by the tower arms'], s: ['good', 'Splashdown on target in the Indian Ocean'], why: 'First booster catch on the first attempt.' },
+  { n: 6, date: '2024-11-19', veh: 'B13 / S31 (V1)', b: ['partial', 'Catch called off, diverted to Gulf splashdown'], s: ['good', 'First Raptor relight in space; daylight reentry and splashdown'], why: 'The relight proved the ship could deorbit itself, a prerequisite for real orbital flights.' },
+  { n: 7, date: '2025-01-16', veh: 'B14 / S33 (V2 ship)', b: ['good', 'Caught by the tower'], s: ['lost', 'Propellant leak and fire in the engine bay, lost at about T+8.5 min'], why: 'First V2 ship with bigger tanks and redesigned forward flaps. Debris fell near the Turks and Caicos.' },
+  { n: 8, date: '2025-03-06', veh: 'B15 / S34 (V2)', b: ['good', 'Caught by the tower'], s: ['lost', 'Engine failures and loss of control at about T+9 min'], why: 'Third catch, but the second V2 ship loss in a row led to a long redesign of the aft section.' },
+  { n: 9, date: '2025-05-27', veh: 'B14-2 / S35 (V2)', b: ['lost', 'First reflown booster; broke up in a deliberately aggressive landing-burn test'], s: ['lost', 'Reached engine cutoff, then lost attitude control and broke up on reentry'], why: 'First reuse of a Super Heavy booster, with 29 of its 33 engines flight-proven.' },
+  { n: 10, date: '2025-08-26', veh: 'B16 / S37 (V2)', b: ['good', 'Gulf splashdown after an engine-out landing test'], s: ['good', 'Deployed 8 Starlink simulators, relit an engine, survived reentry with tiles removed, splashed down'], why: 'The first flight to complete every objective. Marked the turn from survival tests to operations.' },
+  { n: 11, date: '2025-10-13', veh: 'B15-2 / S38 (V2)', b: ['good', 'Gulf splashdown with 24 flight-proven engines'], s: ['good', 'Simulators deployed, relight, controlled splashdown'], why: 'Last V2 flight. Tested a steeper landing-burn profile the tower catch will need.' },
+  { n: 12, date: '2026-05-22', veh: 'B19 / S39 (V3)', b: ['lost', 'Flipped too fast after staging, engines failed, hit the Gulf hard'], s: ['good', 'Reached space despite an engine shutdown, splashed down in the Indian Ocean'], why: 'First V3 stack and first flight of Raptor 3. The booster mishap grounded the programme for two months.' },
+  { n: 13, date: '2026-07-24', veh: 'B20 / S40 (V3)', b: ['partial', 'Boostback with all 33 engines; lost at splashdown when landing-burn engines failed'], s: ['good', 'Deployed 20 Starlink V3 satellites, relit an engine, splashed down intact'], why: 'First operational satellites launched by Starship, and a ship intact enough to inspect its tiles afterwards.' },
+  { n: 14, date: '2026-09-15', veh: 'B21 / S41 (V3)', b: ['plan', 'Planned'], s: ['plan', 'Planned'], why: 'Expected to be the first Starship to deploy satellites into a stable orbit. Date is no earlier than.', planned: true }
+];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function el(tag, attrs, parent) {
+  const node = document.createElementNS(SVG_NS, tag);
+  if (attrs) for (const k in attrs) node.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(node);
+  return node;
+}
+function h(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function lerp(a, b, u) { return a + (b - a) * u; }
+function smooth(u) { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); }
+function pad2(n) { return String(n).padStart(2, '0'); }
+function fmtClock(t) {
+  const s = Math.abs(Math.round(t));
+  return (t < 0 ? '-' : '+') + pad2(Math.floor(s / 3600)) + ':' + pad2(Math.floor((s % 3600) / 60)) + ':' + pad2(s % 60);
+}
+function fmtShort(t) {
+  const s = Math.abs(Math.round(t));
+  const m = Math.floor(s / 60);
+  return (t < 0 ? 'T-' : 'T+') + (m >= 60 ? Math.floor(m / 60) + ':' + pad2(m % 60) : m) + ':' + pad2(s % 60);
+}
+function fmtInt(v) { return Math.round(v).toLocaleString('en-US'); }
+function fmtDate(iso) {
+  const d = new Date(iso + 'T12:00:00Z');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+function mixRgb(a, b, u) { u = clamp(u, 0, 1); return 'rgb(' + Math.round(lerp(a[0], b[0], u)) + ',' + Math.round(lerp(a[1], b[1], u)) + ',' + Math.round(lerp(a[2], b[2], u)) + ')'; }
+
+function sampleTrack(track, t) {
+  if (t <= track[0][0]) return { alt: track[0][1], spd: track[0][2], pitch: track[0][3] };
+  const last = track[track.length - 1];
+  if (t >= last[0]) return { alt: last[1], spd: last[2], pitch: last[3] };
+  let i = 1;
+  while (track[i][0] < t) i++;
+  const a = track[i - 1], b = track[i];
+  const u = (t - a[0]) / (b[0] - a[0]);
+  return { alt: lerp(a[1], b[1], u), spd: lerp(a[2], b[2], u), pitch: lerp(a[3], b[3], smooth(u)) };
+}
+function samplePlume(schedule, t) {
+  for (const [a, b, n, th] of schedule) if (t >= a && t < b) return { n, th };
+  return { n: 0, th: 0 };
+}
+function shipHeating(t) {
+  if (t < 2860 || t > 3750) return 0;
+  if (t < 3200) return smooth((t - 2860) / 340);
+  if (t < 3500) return lerp(1, 0.35, (t - 3200) / 300);
+  return lerp(0.35, 0, (t - 3500) / 250);
+}
+
+// Non-linear timeline: the first ten minutes take half the width.
+const T_WARP = 600;
+function timeToPos(t) {
+  return t < T_WARP ? 0.5 * (t - T_START) / (T_WARP - T_START) : 0.5 + 0.5 * (t - T_WARP) / (T_END - T_WARP);
+}
+function posToTime(p) {
+  return p < 0.5 ? T_START + (p / 0.5) * (T_WARP - T_START) : T_WARP + ((p - 0.5) / 0.5) * (T_END - T_WARP);
+}
+
+// ---------------------------------------------------------------------------
+// Vehicle drawings. Units are metres, nose at y = 0, x centred on 0.
+// Windward (heat shield) side is local +x.
+// ---------------------------------------------------------------------------
+const C_BODY = '#c7cdd3', C_SHADE = '#8f979f', C_DARK = '#3a4047', C_SHIELD = '#2b3139', C_FIN = '#8b939b';
+const BOOSTER_H = 72.3;
+
+function drawShip(g) {
+  el('path', { d: 'M-4.5 15 Q-4.5 3 0 0 Q4.5 3 4.5 15 L4.5 ' + SHIP_H + ' L-4.5 ' + SHIP_H + ' Z', fill: C_BODY, stroke: C_SHADE, 'stroke-width': 0.3 }, g);
+  el('path', { d: 'M0.6 0.1 Q4.5 3 4.5 15 L4.5 ' + SHIP_H + ' L0.6 ' + SHIP_H + ' Z', fill: C_SHIELD }, g);
+  // Payload door on the lee side
+  el('rect', { x: -4.4, y: 9, width: 0.7, height: 15, fill: C_SHADE, opacity: 0.8 }, g);
+  // Forward flaps
+  el('polygon', { points: '-4.5,9 -7.4,11 -7.4,19 -4.5,19', fill: C_FIN, stroke: C_SHADE, 'stroke-width': 0.3 }, g);
+  el('polygon', { points: '4.5,9 7.4,11 7.4,19 4.5,19', fill: C_SHIELD, stroke: C_SHADE, 'stroke-width': 0.3 }, g);
+  // Aft flaps
+  el('polygon', { points: '-4.5,38 -8.6,40 -8.6,52 -4.5,52', fill: C_FIN, stroke: C_SHADE, 'stroke-width': 0.3 }, g);
+  el('polygon', { points: '4.5,38 8.6,40 8.6,52 4.5,52', fill: C_SHIELD, stroke: C_SHADE, 'stroke-width': 0.3 }, g);
+  // Tank seam
+  el('line', { x1: -4.5, y1: 36, x2: 4.5, y2: 36, stroke: C_SHADE, 'stroke-width': 0.25 }, g);
+  // Engines: two vacuum nozzles visible, three sea-level in the centre
+  for (const x of [-2.9, 2.9]) el('polygon', { points: (x - 1.1) + ',' + (SHIP_H - 3) + ' ' + (x + 1.1) + ',' + (SHIP_H - 3) + ' ' + (x + 1.6) + ',' + (SHIP_H + 1) + ' ' + (x - 1.6) + ',' + (SHIP_H + 1), fill: C_DARK }, g);
+  for (const x of [-1, 0, 1]) el('polygon', { points: (x - 0.4) + ',' + (SHIP_H - 2) + ' ' + (x + 0.4) + ',' + (SHIP_H - 2) + ' ' + (x + 0.6) + ',' + (SHIP_H + 0.6) + ' ' + (x - 0.6) + ',' + (SHIP_H + 0.6), fill: '#555c64' }, g);
+  return g;
+}
+
+function drawBooster(g) {
+  el('rect', { x: -4.5, y: 0, width: 9, height: BOOSTER_H, fill: C_BODY, stroke: C_SHADE, 'stroke-width': 0.3 }, g);
+  // Vented interstage slots
+  for (let x = -3.9; x < 4; x += 1.3) el('rect', { x: x, y: 0.5, width: 0.7, height: 1.8, fill: C_DARK }, g);
+  // Grid fins with lattice, and catch pins beneath
+  for (const s of [-1, 1]) {
+    const fg = el('g', {}, g);
+    el('rect', { x: s > 0 ? 4.5 : -8.6, y: 4, width: 4.1, height: 3.2, fill: C_FIN, stroke: C_SHADE, 'stroke-width': 0.3 }, fg);
+    for (let i = 1; i < 4; i++) el('line', { x1: (s > 0 ? 4.5 : -8.6) + i, y1: 4, x2: (s > 0 ? 4.5 : -8.6) + i, y2: 7.2, stroke: C_SHADE, 'stroke-width': 0.2 }, fg);
+    el('rect', { x: s > 0 ? 4.5 : -5.6, y: 7.6, width: 1.1, height: 1.2, fill: C_DARK }, fg);
+  }
+  // Tank seam and engine skirt
+  el('line', { x1: -4.5, y1: 26, x2: 4.5, y2: 26, stroke: C_SHADE, 'stroke-width': 0.25 }, g);
+  el('rect', { x: -4.5, y: BOOSTER_H - 5.5, width: 9, height: 5.5, fill: '#aab1b8' }, g);
+  for (let x = -4; x <= 4; x += 1) el('polygon', { points: (x - 0.42) + ',' + (BOOSTER_H - 1.2) + ' ' + (x + 0.42) + ',' + (BOOSTER_H - 1.2) + ' ' + (x + 0.5) + ',' + (BOOSTER_H + 1.1) + ' ' + (x - 0.5) + ',' + (BOOSTER_H + 1.1), fill: C_DARK }, g);
+  return g;
+}
+
+function drawVehicle(g, kind) {
+  while (g.firstChild) g.removeChild(g.firstChild);
+  if (kind === 'ship') drawShip(g);
+  else if (kind === 'booster') drawBooster(g);
+  else { drawShip(g); drawBooster(el('g', { transform: 'translate(0,' + SHIP_H + ')' }, g)); }
+}
+const VEHICLE_H = { stack: STACK_H, booster: BOOSTER_H, ship: SHIP_H };
+
+function drawPlume(g, n, nMax, th, alt, L, baseW) {
+  while (g.firstChild) g.removeChild(g.firstChild);
+  if (n <= 0 || th <= 0) return;
+  const flicker = REDUCED_MOTION ? 1 : 0.92 + Math.random() * 0.16;
+  const vac = clamp((alt - 25) / 60, 0, 1);
+  const w0 = baseW * Math.sqrt(n / nMax) * (1 + 0.8 * vac);
+  const len = (22 + 28 * clamp(alt / 50, 0, 1)) * th * (0.55 + 0.45 * Math.sqrt(n / nMax)) * flicker;
+  const y0 = L;
+  el('polygon', { points: (-w0 / 2) + ',' + y0 + ' ' + (w0 / 2) + ',' + y0 + ' ' + (w0 * 0.85) + ',' + (y0 + len) + ' 0,' + (y0 + len * 1.2) + ' ' + (-w0 * 0.85) + ',' + (y0 + len), fill: '#5aa8ff', opacity: 0.5 - 0.25 * vac }, g);
+  el('polygon', { points: (-w0 * 0.24) + ',' + y0 + ' ' + (w0 * 0.24) + ',' + y0 + ' ' + (w0 * 0.34) + ',' + (y0 + len * 0.7) + ' 0,' + (y0 + len * 0.85) + ' ' + (-w0 * 0.34) + ',' + (y0 + len * 0.7), fill: '#e8f4ff', opacity: 0.85 - 0.3 * vac }, g);
+}
+
+// ---------------------------------------------------------------------------
+// Camera: one framed view that follows a vehicle
+// ---------------------------------------------------------------------------
+const SKY_TOP_LOW = [86, 152, 220], SKY_BOT_LOW = [186, 216, 242], SPACE = [7, 10, 20];
+
+class Camera {
+  constructor(svg, defs, key) {
+    this.key = key;
+    this.kind = null;
+    this.x = 0; this.w = 900; this.h = 520;
+    const clip = el('clipPath', { id: 'clip-' + key }, defs);
+    this.clipRect = el('rect', { x: 0, y: 0, width: 900, height: 520 }, clip);
+    const grad = el('linearGradient', { id: 'sky-' + key, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    this.stopTop = el('stop', { offset: '0' }, grad);
+    this.stopBot = el('stop', { offset: '1' }, grad);
+    this.g = el('g', { 'clip-path': 'url(#clip-' + key + ')' }, svg);
+    this.bg = el('rect', { fill: 'url(#sky-' + key + ')' }, this.g);
+    this.stars = el('g', {}, this.g);
+    let seed = key.length * 7919;
+    for (let i = 0; i < 70; i++) {
+      seed = (seed * 9301 + 49297) % 233280;
+      const sx = seed / 233280;
+      seed = (seed * 9301 + 49297) % 233280;
+      const sy = seed / 233280;
+      el('circle', { cx: sx * 900, cy: sy * 520, r: 0.6 + (i % 3) * 0.4, fill: '#dbe7ff' }, this.stars);
+    }
+    this.limb = el('circle', { fill: '#0d1f38', stroke: '#4f9df5', 'stroke-width': 8, 'stroke-opacity': 0.35 }, this.g);
+    this.ground = el('g', {}, this.g);
+    this.buildGround();
+    this.veh = el('g', {}, this.g);
+    this.plasma = el('g', {}, this.veh);
+    this.plasmaA = el('ellipse', { fill: 'url(#plasma)' }, this.plasma);
+    this.plasmaB = el('ellipse', { fill: 'url(#plasma)' }, this.plasma);
+    this.plume = el('g', {}, this.veh);
+    this.body = el('g', {}, this.veh);
+    this.payload = el('g', {}, this.veh);
+    this.hud = el('g', {}, this.g);
+    el('rect', { x: 0, y: 0, width: 210, height: 26, rx: 4, fill: 'rgba(6,10,20,0.62)' }, this.hud);
+    this.hudLabel = el('text', { x: 10, y: 18, fill: '#eaf2ff', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': '600', 'font-size': '14', 'letter-spacing': '1.5' }, this.hud);
+    this.hudData = el('g', {}, this.g);
+    el('rect', { x: 0, y: 0, width: 168, height: 46, rx: 4, fill: 'rgba(6,10,20,0.62)' }, this.hudData);
+    this.hudAlt = el('text', { x: 158, y: 19, 'text-anchor': 'end', fill: '#eaf2ff', 'font-family': 'JetBrains Mono, monospace', 'font-size': '13' }, this.hudData);
+    this.hudSpd = el('text', { x: 158, y: 38, 'text-anchor': 'end', fill: '#eaf2ff', 'font-family': 'JetBrains Mono, monospace', 'font-size': '13' }, this.hudData);
+  }
+
+  buildGround() {
+    const g = this.ground;
+    // Coordinates are metres; (0, 0) is the launch mount top under the vehicle axis, y grows downward.
+    this.sea = el('g', {}, g);
+    el('rect', { x: -600, y: 0, width: 1200, height: 600, fill: '#1c4466' }, this.sea);
+    el('rect', { x: -600, y: 0, width: 1200, height: 1.2, fill: '#5f9ac7', opacity: 0.8 }, this.sea);
+    this.pad = el('g', {}, g);
+    el('rect', { x: -600, y: 20, width: 1200, height: 600, fill: '#3a3a33' }, this.pad);
+    el('rect', { x: -600, y: 20, width: 1200, height: 2, fill: '#6e6a58' }, this.pad);
+    el('rect', { x: 140, y: 20, width: 600, height: 600, fill: '#1c4466' }, this.pad);
+    // Tower, about 146 m tall, 8 m wide, 30 m from the vehicle axis
+    el('rect', { x: -34, y: -126, width: 8, height: 146, fill: '#50565d' }, this.pad);
+    for (let y = -120; y < 20; y += 8) el('line', { x1: -34, y1: y, x2: -26, y2: y + 8, stroke: '#3a4047', 'stroke-width': 0.4 }, this.pad);
+    // Catch arms: two rails drawn behind the vehicle
+    this.arms = el('g', {}, this.pad);
+    this.armA = el('rect', { x: -26, y: -110.5, width: 14, height: 2.4, fill: '#6b7280' }, this.arms);
+    this.armB = el('rect', { x: -26, y: -106.5, width: 14, height: 2.4, fill: '#6b7280' }, this.arms);
+    // Orbital launch mount: legs and table
+    el('rect', { x: -8, y: 2, width: 1.8, height: 18, fill: '#4b5058' }, this.pad);
+    el('rect', { x: 6.2, y: 2, width: 1.8, height: 18, fill: '#4b5058' }, this.pad);
+    el('rect', { x: -9.5, y: 0, width: 19, height: 2.2, fill: '#5b6168' }, this.pad);
+    this.deluge = el('ellipse', { cx: 0, cy: 20, rx: 26, ry: 6, fill: '#ffffff', opacity: 0 }, this.pad);
+  }
+
+  layout(x, w, h) {
+    this.x = x; this.w = w; this.h = h;
+    this.clipRect.setAttribute('x', x); this.clipRect.setAttribute('width', w); this.clipRect.setAttribute('height', h);
+    this.bg.setAttribute('x', x); this.bg.setAttribute('width', w); this.bg.setAttribute('height', h);
+    this.stars.setAttribute('transform', 'translate(' + x + ',0)');
+    this.hud.setAttribute('transform', 'translate(' + (x + 10) + ',10)');
+    this.hudData.setAttribute('transform', 'translate(' + (x + w - 178) + ',10)');
+  }
+  show(on) { this.g.style.display = on ? '' : 'none'; }
+
+  render(st) {
+    if (st.kind !== this.kind) {
+      this.kind = st.kind;
+      drawVehicle(this.body, st.kind);
+      this.hudLabel.textContent = st.kind === 'stack' ? 'FULL STACK' : st.kind === 'booster' ? 'SUPER HEAVY BOOSTER' : 'STARSHIP';
+    }
+    const L = VEHICLE_H[st.kind];
+    const s = st.kind === 'stack' ? 2.4 : 2.6;
+    const cx = this.x + this.w / 2;
+    const cy = st.kind === 'ship' ? this.h * 0.5 : this.h * 0.55;
+    const altM = st.alt * 1000;
+
+    this.stopTop.setAttribute('stop-color', mixRgb(SKY_TOP_LOW, SPACE, (st.alt - 2) / 38));
+    this.stopBot.setAttribute('stop-color', mixRgb(SKY_BOT_LOW, SPACE, (st.alt - 12) / 60));
+    this.stars.setAttribute('opacity', clamp((st.alt - 35) / 40, 0, 1));
+
+    const limbOn = st.alt > 20;
+    this.limb.style.display = limbOn ? '' : 'none';
+    if (limbOn) {
+      const r = 2600;
+      const top = this.h * 0.8 + clamp((st.alt - 20) / 180, 0, 1) * this.h * 0.12;
+      this.limb.setAttribute('cx', cx); this.limb.setAttribute('cy', top + r); this.limb.setAttribute('r', r);
+      this.limb.setAttribute('opacity', clamp((st.alt - 20) / 30, 0, 1));
+    }
+
+    const groundY = cy + (L / 2) * s + altM * s;
+    const groundOn = groundY < this.h * 3;
+    this.ground.style.display = groundOn ? '' : 'none';
+    if (groundOn) {
+      this.ground.setAttribute('transform', 'translate(' + cx + ',' + groundY + ') scale(' + s + ')');
+      const sea = st.kind === 'ship';
+      this.pad.style.display = sea ? 'none' : '';
+      this.sea.style.display = sea ? '' : 'none';
+      if (!sea) {
+        const open = 1 - st.arms;
+        this.armA.setAttribute('width', 14 + 18 * (1 - open));
+        this.armB.setAttribute('width', 14 + 18 * (1 - open));
+        this.deluge.setAttribute('opacity', st.deluge * 0.7);
+        this.deluge.setAttribute('ry', 4 + 6 * st.deluge);
+      }
+    }
+
+    this.veh.setAttribute('transform', 'translate(' + cx + ',' + cy + ') rotate(' + st.pitch + ') scale(' + s + ') translate(0,' + (-L / 2) + ')');
+    drawPlume(this.plume, st.plume.n, st.kind === 'ship' ? 6 : 33, st.plume.th, st.alt, L, st.kind === 'ship' ? 7 : 9);
+
+    if (st.kind === 'ship' && st.heating > 0) {
+      this.plasma.style.display = '';
+      this.plasmaA.setAttribute('cx', 5); this.plasmaA.setAttribute('cy', L / 2); this.plasmaA.setAttribute('rx', 10); this.plasmaA.setAttribute('ry', L / 2 + 6);
+      this.plasmaA.setAttribute('opacity', st.heating * 0.95);
+      this.plasmaB.setAttribute('cx', 9); this.plasmaB.setAttribute('cy', L / 2); this.plasmaB.setAttribute('rx', 20); this.plasmaB.setAttribute('ry', L * 0.75);
+      this.plasmaB.setAttribute('opacity', st.heating * 0.45);
+    } else {
+      this.plasma.style.display = 'none';
+    }
+
+    while (this.payload.firstChild) this.payload.removeChild(this.payload.firstChild);
+    if (st.kind === 'ship' && st.payload > 0) {
+      for (let i = 0; i < st.payload; i++) {
+        const age = st.t - (1000 + 33 * i);
+        const dx = -(6 + age * 0.03);
+        const dy = 16 - age * 0.004 * (i % 2 ? 1 : -1);
+        el('rect', { x: dx - 0.35, y: dy - 2, width: 0.7, height: 4, fill: '#e8edf2', opacity: 0.95 }, this.payload);
+      }
+    }
+
+    this.hudAlt.textContent = 'ALT ' + (st.alt < 10 ? st.alt.toFixed(2) : st.alt.toFixed(1)) + ' km';
+    this.hudSpd.textContent = 'SPD ' + fmtInt(st.spd) + ' km/h';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scene
+// ---------------------------------------------------------------------------
+const sceneSvg = document.getElementById('scene');
+const sceneDefs = el('defs', {}, sceneSvg);
+(function () {
+  const rg = el('radialGradient', { id: 'plasma', cx: '0.5', cy: '0.5', r: '0.5' }, sceneDefs);
+  el('stop', { offset: '0', 'stop-color': '#ffd9a8', 'stop-opacity': '0.95' }, rg);
+  el('stop', { offset: '0.45', 'stop-color': '#ff7a3d', 'stop-opacity': '0.7' }, rg);
+  el('stop', { offset: '1', 'stop-color': '#ff4d1a', 'stop-opacity': '0' }, rg);
+})();
+const camStack = new Camera(sceneSvg, sceneDefs, 'stack');
+const camBooster = new Camera(sceneSvg, sceneDefs, 'booster');
+const camShip = new Camera(sceneSvg, sceneDefs, 'ship');
+const divider = el('rect', { x: 449, y: 0, width: 2, height: 520, fill: '#0b1020' }, sceneSvg);
+camStack.layout(0, 900, 520);
+camBooster.layout(0, 450, 520);
+camShip.layout(450, 450, 520);
+
+function renderScene(t) {
+  const ship = sampleTrack(SHIP_TRACK, t);
+  if (t < T_STAGING) {
+    camStack.show(true); camBooster.show(false); camShip.show(false); divider.style.display = 'none';
+    camStack.render({ t, kind: 'stack', alt: ship.alt, spd: ship.spd, pitch: ship.pitch, plume: samplePlume(STACK_PLUME, t),
+      heating: 0, arms: 0, deluge: t > -12 && t < 14 ? smooth((t + 12) / 4) * (1 - smooth((t - 8) / 6)) : 0, payload: 0 });
+  } else {
+    camStack.show(false); camBooster.show(true); camShip.show(true); divider.style.display = '';
+    const b = sampleTrack(BOOSTER_TRACK, t);
+    camBooster.render({ t, kind: 'booster', alt: b.alt, spd: b.spd, pitch: b.pitch, plume: samplePlume(BOOSTER_PLUME, t),
+      heating: 0, arms: clamp((t - 395) / 5, 0, 1), deluge: 0, payload: 0 });
+    camShip.render({ t, kind: 'ship', alt: ship.alt, spd: ship.spd, pitch: ship.pitch, plume: samplePlume(SHIP_PLUME, t),
+      heating: shipHeating(t), arms: 0, deluge: 0, payload: t < 1750 ? clamp(Math.floor((t - 1000) / 33), 0, 20) : 0 });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Charts
+// ---------------------------------------------------------------------------
+function buildChart(container, opts) {
+  const W = 900, H = 200, ML = 58, MR = 20, MT = 26, MB = 30;
+  const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': opts.label }, container);
+  const px = t => ML + timeToPos(t) * (W - ML - MR);
+  const py = v => MT + (1 - v / opts.yMax) * (H - MT - MB);
+
+  const grid = el('g', { class: 'grid' }, svg);
+  for (const v of opts.yTicks) {
+    el('line', { x1: ML, y1: py(v), x2: W - MR, y2: py(v) }, grid);
+    el('text', { x: ML - 8, y: py(v) + 4, 'text-anchor': 'end' }, grid).textContent = opts.fmt(v);
+  }
+  el('text', { x: ML - 8, y: 12, 'text-anchor': 'end' }, grid).textContent = opts.unit;
+  const axis = el('g', { class: 'axis' }, svg);
+  el('line', { x1: ML, y1: H - MB, x2: W - MR, y2: H - MB }, axis);
+  for (const m of [0, 2, 4, 6, 8, 10, 20, 30, 40, 50, 60]) {
+    const x = px(m * 60);
+    el('line', { x1: x, y1: H - MB, x2: x, y2: H - MB + 5 }, axis);
+    el('text', { x: x, y: H - MB + 17, 'text-anchor': 'middle' }, axis).textContent = m;
+  }
+  el('text', { x: W - MR, y: H - MB + 17, 'text-anchor': 'end' }, axis).textContent = 'min';
+  el('line', { x1: px(T_WARP), y1: MT, x2: px(T_WARP), y2: H - MB, stroke: 'var(--line)', 'stroke-dasharray': '2 4' }, axis);
+
+  const series = [];
+  for (const sr of opts.series) {
+    const pts = [];
+    for (let t = sr.t0; t <= sr.t1; t += 2) {
+      const smp = sampleTrack(sr.track, t);
+      pts.push(px(t).toFixed(1) + ',' + py(smp[opts.field]).toFixed(1));
+    }
+    el('path', { class: 'series', d: 'M' + pts.join(' L'), stroke: sr.color }, svg);
+    const lp = sampleTrack(sr.track, sr.labelAt);
+    el('text', { class: 'dl', x: px(sr.labelAt) + sr.dx, y: py(lp[opts.field]) + sr.dy, 'text-anchor': sr.anchor || 'start' }, svg).textContent = sr.name;
+    series.push(sr);
+  }
+
+  const playhead = el('g', { class: 'playhead' }, svg);
+  const phLine = el('line', { x1: 0, y1: MT, x2: 0, y2: H - MB }, playhead);
+  const phDots = series.map(sr => el('circle', { r: 4.5, fill: sr.color }, playhead));
+
+  const cross = el('g', { class: 'cross' }, svg);
+  cross.style.display = 'none';
+  const crLine = el('line', { x1: 0, y1: MT, x2: 0, y2: H - MB }, cross);
+  const tip = h('div', 'tip');
+  container.appendChild(tip);
+  const hit = el('rect', { x: ML, y: MT, width: W - ML - MR, height: H - MT - MB, fill: 'transparent', style: 'cursor: crosshair' }, svg);
+
+  function timeAtClient(clientX) {
+    const r = svg.getBoundingClientRect();
+    const vx = (clientX - r.left) / r.width * W;
+    return clamp(posToTime(clamp((vx - ML) / (W - ML - MR), 0, 1)), T_START, T_END);
+  }
+  hit.addEventListener('mousemove', e => {
+    const t = timeAtClient(e.clientX);
+    const x = px(t);
+    cross.style.display = '';
+    crLine.setAttribute('x1', x); crLine.setAttribute('x2', x);
+    const rows = [];
+    for (const sr of series) {
+      if (t < sr.t0 || t > sr.t1) continue;
+      rows.push('<span style="color:' + sr.tipColor + '">' + sr.name + '</span> ' + opts.fmt(sampleTrack(sr.track, t)[opts.field]) + ' ' + opts.unit);
+    }
+    tip.innerHTML = '<b>' + fmtShort(t) + '</b><br>' + rows.join('<br>');
+    const r = svg.getBoundingClientRect();
+    tip.style.left = (x / W * r.width) + 'px';
+    tip.style.top = (svg.offsetTop + MT / H * r.height) + 'px';
+    tip.style.display = 'block';
+  });
+  hit.addEventListener('mouseleave', () => { cross.style.display = 'none'; tip.style.display = 'none'; });
+  hit.addEventListener('click', e => { seek(timeAtClient(e.clientX)); });
+
+  return {
+    update(t) {
+      const x = px(t);
+      phLine.setAttribute('x1', x); phLine.setAttribute('x2', x);
+      series.forEach((sr, i) => {
+        const on = t >= sr.t0 && t <= sr.t1;
+        phDots[i].style.display = on ? '' : 'none';
+        if (on) { phDots[i].setAttribute('cx', x); phDots[i].setAttribute('cy', py(sampleTrack(sr.track, t)[opts.field])); }
+      });
+    }
+  };
+}
+
+const altChart = buildChart(document.getElementById('chart-alt'), {
+  label: 'Altitude of ship and booster against flight time', field: 'alt', yMax: 200, yTicks: [0, 50, 100, 150, 200], unit: 'km', fmt: v => Math.round(v),
+  series: [
+    { name: 'Ship', color: 'var(--ship)', tipColor: '#8fc0ff', track: SHIP_TRACK, t0: T_START, t1: 3990, field: 'alt', labelAt: 1700, dx: 0, dy: -8, anchor: 'middle' },
+    { name: 'Booster', color: 'var(--booster)', tipColor: '#ffb08a', track: BOOSTER_TRACK, t0: T_STAGING, t1: T_CATCH, labelAt: 230, dx: 8, dy: -6 }
+  ]
+});
+const spdChart = buildChart(document.getElementById('chart-spd'), {
+  label: 'Speed of ship and booster against flight time', field: 'spd', yMax: 28000, yTicks: [0, 7000, 14000, 21000, 28000], unit: 'km/h', fmt: v => fmtInt(v),
+  series: [
+    { name: 'Ship', color: 'var(--ship)', tipColor: '#8fc0ff', track: SHIP_TRACK, t0: T_START, t1: 3990, labelAt: 1500, dx: 0, dy: -8, anchor: 'middle' },
+    { name: 'Booster', color: 'var(--booster)', tipColor: '#ffb08a', track: BOOSTER_TRACK, t0: T_STAGING, t1: T_CATCH, labelAt: 340, dx: 0, dy: -8, anchor: 'middle' }
+  ]
+});
+
+// ---------------------------------------------------------------------------
+// Panel
+// ---------------------------------------------------------------------------
+const WHO_LABEL = { stack: 'Full stack', booster: 'Super Heavy booster', ship: 'Starship' };
+let shownPhase = -1;
+function phaseIndexAt(t) {
+  let i = 0;
+  for (let k = 0; k < PHASES.length; k++) if (PHASES[k].t <= t) i = k;
+  return i;
+}
+function updatePanel(t) {
+  const i = phaseIndexAt(t);
+  const ph = PHASES[i];
+  if (i !== shownPhase) {
+    shownPhase = i;
+    document.getElementById('phase-index').textContent = 'Phase ' + (i + 1) + ' of ' + PHASES.length;
+    const who = document.getElementById('phase-who');
+    who.textContent = WHO_LABEL[ph.who];
+    who.dataset.who = ph.who;
+    document.getElementById('phase-name').textContent = ph.name;
+    document.getElementById('phase-desc').textContent = ph.desc;
+    const mw = document.getElementById('phase-meanwhile');
+    mw.hidden = !ph.meanwhile;
+    mw.textContent = ph.meanwhile || '';
+    document.getElementById('tile-eng').textContent = ph.engines;
+    const chips = document.getElementById('phase-tech');
+    chips.querySelectorAll('.chip').forEach(c => c.remove());
+    for (const id of ph.tech) {
+      const tech = TECH.find(x => x.id === id);
+      const b = h('button', 'chip', tech.name);
+      b.type = 'button';
+      b.addEventListener('click', () => { showView('tech'); flashCard(id); });
+      chips.appendChild(b);
+    }
+    document.querySelectorAll('.marker').forEach(m => m.classList.toggle('current', m.dataset.id === ph.id));
+  }
+  const smp = ph.who === 'booster' ? sampleTrack(BOOSTER_TRACK, t) : sampleTrack(SHIP_TRACK, t);
+  document.getElementById('tile-alt').innerHTML = (smp.alt < 10 ? smp.alt.toFixed(2) : smp.alt.toFixed(1)) + '<small>km</small>';
+  document.getElementById('tile-spd').innerHTML = fmtInt(smp.spd) + '<small>km/h</small>';
+}
+
+// ---------------------------------------------------------------------------
+// Playback
+// ---------------------------------------------------------------------------
+const SPEEDS = [1, 5, 15, 60];
+let tNow = T_START;
+let playing = false;
+let speed = 5;
+let lastFrame = 0;
+const scrub = document.getElementById('scrub');
+let scrubbing = false;
+
+function renderAll() {
+  renderScene(tNow);
+  updatePanel(tNow);
+  altChart.update(tNow);
+  spdChart.update(tNow);
+  document.getElementById('clock').textContent = fmtClock(tNow);
+  if (!scrubbing) scrub.value = Math.round(timeToPos(tNow) * 1000);
+}
+function seek(t) { tNow = clamp(t, T_START, T_END); renderAll(); }
+function setPlaying(on) {
+  playing = on;
+  document.getElementById('play-label').textContent = on ? 'Pause' : 'Play';
+  document.getElementById('btn-play').setAttribute('aria-label', on ? 'Pause' : 'Play');
+  document.getElementById('icon-play').innerHTML = on ? '<path d="M3 2h4v12H3zM9 2h4v12H9z"/>' : '<path d="M4 2l10 6-10 6z"/>';
+  if (on) { lastFrame = performance.now(); requestAnimationFrame(frame); }
+}
+function frame(now) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (now - lastFrame) / 1000);
+  lastFrame = now;
+  tNow += dt * speed;
+  if (tNow >= T_END) { tNow = T_END; renderAll(); setPlaying(false); return; }
+  renderAll();
+  requestAnimationFrame(frame);
+}
+function setSpeed(v) {
+  speed = v;
+  document.querySelectorAll('#speed button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === v)));
+  try { localStorage.setItem('sfp-speed', String(v)); } catch (e) { /* storage unavailable */ }
+}
+function stepEvent(dir) {
+  if (dir > 0) { const nx = PHASES.find(p => p.t > tNow + 0.5); seek(nx ? nx.t : T_END); }
+  else { let pv = null; for (const p of PHASES) if (p.t < tNow - 0.5) pv = p; seek(pv ? pv.t : T_START); }
+}
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (!playing && tNow >= T_END) tNow = T_START;
+  setPlaying(!playing);
+});
+document.getElementById('btn-prev').addEventListener('click', () => stepEvent(-1));
+document.getElementById('btn-next').addEventListener('click', () => stepEvent(1));
+document.getElementById('btn-restart').addEventListener('click', () => seek(T_START));
+scrub.addEventListener('input', () => { scrubbing = true; seek(posToTime(Number(scrub.value) / 1000)); scrubbing = false; });
+(function buildSpeed() {
+  const wrap = document.getElementById('speed');
+  for (const v of SPEEDS) {
+    const b = h('button', null, v + 'x');
+    b.type = 'button';
+    b.dataset.speed = v;
+    b.addEventListener('click', () => setSpeed(v));
+    wrap.appendChild(b);
+  }
+})();
+(function buildMarkers() {
+  const wrap = document.getElementById('markers');
+  const labelled = { liftoff: 'Liftoff', hotstage: 'Staging', catch: 'Catch', seco: 'SECO', deploy: 'Deploy', relight: 'Relight', entry: 'Entry', splash: 'Splashdown' };
+  for (const ph of PHASES) {
+    const pos = timeToPos(ph.t);
+    const m = h('span', 'marker');
+    m.style.left = (pos * 100) + '%';
+    m.dataset.id = ph.id;
+    m.dataset.who = ph.who;
+    m.title = fmtShort(ph.t) + ' ' + ph.name;
+    m.addEventListener('click', () => seek(ph.t));
+    wrap.appendChild(m);
+    if (labelled[ph.id]) {
+      const l = h('span', 'mlabel', labelled[ph.id]);
+      l.style.left = (pos * 100) + '%';
+      if (pos < 0.04) l.style.transform = 'none';
+      if (pos > 0.96) l.style.transform = 'translateX(-100%)';
+      l.addEventListener('click', () => seek(ph.t));
+      wrap.appendChild(l);
+    }
+  }
+})();
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (document.getElementById('view-flight').hidden) return;
+  if (e.code === 'Space') { e.preventDefault(); document.getElementById('btn-play').click(); }
+  else if (e.code === 'ArrowRight') { e.preventDefault(); e.shiftKey ? stepEvent(1) : seek(tNow + 5); }
+  else if (e.code === 'ArrowLeft') { e.preventDefault(); e.shiftKey ? stepEvent(-1) : seek(tNow - 5); }
+});
+
+// ---------------------------------------------------------------------------
+// Views
+// ---------------------------------------------------------------------------
+function showView(v) {
+  document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'view-' + v; });
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === v)));
+  if (v !== 'flight' && playing) setPlaying(false);
+  try { localStorage.setItem('sfp-view', v); } catch (e) { /* storage unavailable */ }
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+
+function flashCard(id) {
+  const card = document.getElementById('tech-' + id);
+  if (!card) return;
+  card.scrollIntoView({ behavior: REDUCED_MOTION ? 'auto' : 'smooth', block: 'start' });
+  card.classList.add('flash');
+  setTimeout(() => card.classList.remove('flash'), 1800);
+}
+
+// ---------------------------------------------------------------------------
+// Vehicle anatomy
+// ---------------------------------------------------------------------------
+(function buildAnatomy() {
+  const svg = document.getElementById('anatomy');
+  const S = 5, TOP = 36, CX = 450;
+  const body = el('g', { transform: 'translate(' + CX + ',' + TOP + ') scale(' + S + ')' }, svg);
+  drawShip(body);
+  drawBooster(el('g', { transform: 'translate(0,' + SHIP_H + ')' }, body));
+  // Height rule
+  el('line', { x1: CX + 105, y1: TOP, x2: CX + 105, y2: TOP + STACK_H * S, stroke: 'var(--ink-3)', 'stroke-width': 1 }, svg);
+  for (const [m, lbl] of [[0, '0 m'], [SHIP_H, SHIP_H.toFixed(1) + ' m'], [STACK_H, STACK_H.toFixed(1) + ' m']]) {
+    el('line', { x1: CX + 100, y1: TOP + m * S, x2: CX + 110, y2: TOP + m * S, stroke: 'var(--ink-3)' }, svg);
+    el('text', { x: CX + 114, y: TOP + m * S + 4, fill: 'var(--ink-3)', 'font-size': 11, 'font-family': 'JetBrains Mono, monospace' }, svg).textContent = lbl;
+  }
+  el('text', { x: CX - 60, y: TOP + STACK_H * S + 40, fill: 'var(--ink-3)', 'font-size': 12, 'font-family': 'Barlow, sans-serif' }, svg).textContent = 'lee side';
+  el('text', { x: CX + 30, y: TOP + STACK_H * S + 40, fill: 'var(--ink-3)', 'font-size': 12, 'font-family': 'Barlow, sans-serif' }, svg).textContent = 'windward side';
+
+  const hits = el('g', {}, svg);
+  const callouts = el('g', {}, svg);
+  const layout = { left: [], right: [] };
+  for (const p of PARTS) layout[p.side].push({ p, y: TOP + ((p.y0 + p.y1) / 2) * S });
+  for (const side of ['left', 'right']) {
+    const items = layout[side].sort((a, b) => a.y - b.y);
+    for (let i = 0; i < items.length; i++) {
+      items[i].ly = items[i].y;
+      if (i > 0) items[i].ly = Math.max(items[i].ly, items[i - 1].ly + 30);
+    }
+    for (let i = items.length - 2; i >= 0; i--) items[i].ly = Math.min(items[i].ly, items[i + 1].ly - 30);
+    for (const it of items) {
+      const labelX = side === 'left' ? 300 : 622;
+      const edgeX = side === 'left' ? CX - 48 : CX + 48;
+      const g = el('g', { class: 'callout', 'data-id': it.p.id, tabindex: 0, role: 'button' }, callouts);
+      el('polyline', { points: labelX + ',' + it.ly + ' ' + (side === 'left' ? labelX + 24 : labelX - 24) + ',' + it.ly + ' ' + edgeX + ',' + it.y, fill: 'none' }, g);
+      el('circle', { cx: edgeX, cy: it.y, r: 2.5, fill: 'var(--ink-3)' }, g);
+      el('text', { x: side === 'left' ? labelX - 6 : labelX + 6, y: it.ly + 4, 'text-anchor': side === 'left' ? 'end' : 'start' }, g).textContent = it.p.name;
+      g.addEventListener('click', () => selectPart(it.p.id));
+      g.addEventListener('keydown', e => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); selectPart(it.p.id); } });
+    }
+  }
+  for (const p of PARTS) {
+    const r = el('rect', { class: 'hit', 'data-id': p.id, x: CX - 46, y: TOP + p.y0 * S, width: 92, height: (p.y1 - p.y0) * S, rx: 3 }, hits);
+    if (p.id === 'tiles') { r.setAttribute('x', CX + 2); r.setAttribute('width', 44); }
+    r.addEventListener('click', () => selectPart(p.id));
+  }
+})();
+
+function selectPart(id) {
+  const p = PARTS.find(x => x.id === id);
+  document.querySelectorAll('#anatomy .callout, #anatomy .hit').forEach(n => n.classList.toggle('active', n.dataset.id === id));
+  const card = document.getElementById('part-card');
+  card.innerHTML = '';
+  card.appendChild(h('div', 'eyebrow', (p.y0 < SHIP_H && p.id !== 'interstage') ? 'Starship (ship)' : 'Super Heavy (booster)'));
+  card.appendChild(h('h2', null, p.name));
+  card.appendChild(h('p', null, p.text));
+  const dl = document.createElement('dl');
+  for (const [k, v] of p.facts) { dl.appendChild(h('dt', null, k)); dl.appendChild(h('dd', null, v)); }
+  card.appendChild(dl);
+}
+
+(function buildCompare() {
+  const svg = document.getElementById('compare');
+  const rows = [['Starship V3', 124.4, true], ['Saturn V', 110.6], ['Statue of Liberty', 93], ['Falcon 9', 70]];
+  rows.forEach((r, i) => {
+    const y = 8 + i * 35;
+    el('text', { x: 0, y: y + 15 }, svg).textContent = r[0];
+    el('rect', { class: 'bar' + (r[2] ? ' hero' : ''), x: 128, y: y, width: (r[1] / 124.4) * 230, height: 22, rx: 2 }, svg);
+    el('text', { class: 'num', x: 128 + (r[1] / 124.4) * 230 + 6, y: y + 15 }, svg).textContent = r[1] + ' m';
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// Technology cards
+// ---------------------------------------------------------------------------
+const FIGURES = {
+  ffsc() {
+    const box = (x, y, w, hh, label, sub) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hh + '" rx="4" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>' +
+      '<text class="fig-text" x="' + (x + w / 2) + '" y="' + (y + (sub ? 17 : 24)) + '" text-anchor="middle" font-weight="600">' + label + '</text>' +
+      (sub ? '<text class="fig-text fig-muted" x="' + (x + w / 2) + '" y="' + (y + 31) + '" text-anchor="middle">' + sub + '</text>' : '');
+    const arrow = (pts, color, width, label, lx, ly, anchor, dash) => '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="' + width + '" marker-end="url(#ffsc-arrow)"' + (dash ? ' stroke-dasharray="4 3"' : '') + '/>' +
+      (label ? '<text class="fig-text fig-muted" x="' + lx + '" y="' + ly + '" text-anchor="' + (anchor || 'middle') + '">' + label + '</text>' : '');
+    const OX = 'var(--ship)', CH = 'var(--booster)';
+    return '<svg viewBox="0 0 640 340" role="img" aria-label="Flow diagram of the full-flow staged combustion cycle: two preburners each drive one turbopump and all propellant enters the main chamber as gas">' +
+      '<defs><marker id="ffsc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>' +
+      box(40, 16, 130, 40, 'Liquid oxygen tank') + box(470, 16, 130, 40, 'Liquid methane tank') +
+      box(40, 96, 130, 44, 'Oxygen turbopump', 'spun by its own turbine') + box(470, 96, 130, 44, 'Methane turbopump', 'spun by its own turbine') +
+      box(40, 190, 130, 44, 'Oxygen-rich preburner', 'lots of O2, a little CH4') + box(470, 190, 130, 44, 'Fuel-rich preburner', 'lots of CH4, a little O2') +
+      box(235, 236, 170, 48, 'Main combustion chamber', 'about 330 bar') +
+      '<polygon points="255,284 385,284 415,330 225,330" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>' +
+      '<text class="fig-text fig-muted" x="320" y="312" text-anchor="middle">Nozzle</text>' +
+      arrow('105,56 105,94', OX, 3) + arrow('535,56 535,94', CH, 3) +
+      arrow('105,140 105,188', OX, 3, 'nearly all the O2', 112, 154, 'start') +
+      arrow('535,140 535,188', CH, 3, 'most of the CH4', 542, 154, 'start') +
+      arrow('170,118 300,118 300,150 490,150 490,188', OX, 1.2, 'a little O2', 395, 144, 'middle', true) +
+      arrow('470,118 340,118 340,160 150,160 150,188', CH, 1.2, 'a little CH4', 245, 176, 'middle', true) +
+      arrow('170,212 233,258', 'currentColor', 3, 'hot O2-rich gas', 196, 276, 'middle') +
+      arrow('470,212 407,258', 'currentColor', 3, 'hot CH4-rich gas', 444, 276, 'middle') +
+      arrow('60,190 60,165 24,165 24,130 38,130', 'currentColor', 1.2, 'drives', 24, 158, 'middle') +
+      arrow('580,190 580,165 616,165 616,130 602,130', 'currentColor', 1.2, 'drives', 616, 158, 'middle') +
+      arrow('600,104 632,104 632,300 416,300', CH, 1.2, 'CH4 cools the nozzle walls first', 524, 294, 'middle', true) +
+      '</svg>';
+  },
+  tiles() {
+    let hexes = '';
+    const r = 16, dx = r * Math.sqrt(3), dy = r * 1.5;
+    for (let row = 0; row < 4; row++) for (let col = 0; col < 12; col++) {
+      const cx = 30 + col * dx + (row % 2 ? dx / 2 : 0), cy = 30 + row * dy;
+      if (cx > 400) continue;
+      const missing = row === 1 && col === 5;
+      const pts = [];
+      for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; pts.push((cx + (r - 1.5) * Math.cos(a)).toFixed(1) + ',' + (cy + (r - 1.5) * Math.sin(a)).toFixed(1)); }
+      hexes += '<polygon points="' + pts.join(' ') + '" fill="' + (missing ? 'var(--plasma)' : 'var(--surface-2)') + '" stroke="currentColor" stroke-width="0.8"' + (missing ? ' opacity="0.7"' : '') + '/>';
+    }
+    return '<svg viewBox="0 0 640 230" role="img" aria-label="Hexagonal tile pattern seen from outside, and a cross-section showing tiles on pins over an ablative layer and the steel hull">' +
+      hexes +
+      '<text class="fig-text fig-muted" x="440" y="34">Hexagons leave no straight channel</text><text class="fig-text fig-muted" x="440" y="50">for hot gas to run along.</text>' +
+      '<text class="fig-text fig-muted" x="440" y="78">One missing tile (orange): tested</text><text class="fig-text fig-muted" x="440" y="94">deliberately on Flights 6 to 10.</text>' +
+      '<rect x="30" y="196" width="380" height="14" fill="var(--line)"/><text class="fig-text" x="420" y="207">Stainless steel hull, 4 mm</text>' +
+      '<rect x="30" y="184" width="380" height="12" fill="var(--plasma)" opacity="0.45"/><text class="fig-text" x="420" y="192">Ablative backing layer</text>' +
+      [0, 1, 2, 3, 4, 5, 6, 7].map(i => '<rect x="' + (32 + i * 47) + '" y="156" width="44" height="28" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="0.8"/><rect x="' + (52 + i * 47) + '" y="176" width="4" height="10" fill="currentColor"/>').join('') +
+      '<text class="fig-text" x="420" y="170">Silica tiles on pins, with gaps</text>' +
+      '<text class="fig-text fig-muted" x="30" y="146">Cross-section</text>' +
+      '</svg>';
+  },
+  catch() {
+    const frame = (x, title, boosterY, armW, caption) => '<g transform="translate(' + x + ',0)">' +
+      '<text class="fig-text" x="100" y="16" text-anchor="middle" font-weight="600">' + title + '</text>' +
+      '<rect x="20" y="26" width="16" height="170" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>' +
+      '<rect x="36" y="70" width="' + armW + '" height="6" fill="currentColor" opacity="0.8"/><rect x="36" y="80" width="' + armW + '" height="6" fill="currentColor" opacity="0.8"/>' +
+      '<rect x="95" y="' + boosterY + '" width="26" height="150" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>' +
+      '<rect x="88" y="' + (boosterY + 10) + '" width="7" height="6" fill="currentColor"/><rect x="121" y="' + (boosterY + 10) + '" width="7" height="6" fill="currentColor"/>' +
+      '<rect x="90" y="' + (boosterY + 16) + '" width="4" height="4" fill="var(--booster)"/><rect x="122" y="' + (boosterY + 16) + '" width="4" height="4" fill="var(--booster)"/>' +
+      '<rect x="0" y="196" width="200" height="3" fill="currentColor" opacity="0.5"/>' +
+      '<text class="fig-text fig-muted" x="100" y="216" text-anchor="middle">' + caption + '</text></g>';
+    return '<svg viewBox="0 0 640 224" role="img" aria-label="Three frames of a booster catch: arms open during the landing burn, arms close as the booster hovers, pins rest on the arm rails">' +
+      frame(10, '1. Landing burn', -40, 40, 'Arms open, booster braking') +
+      frame(220, '2. Hover beside tower', 58, 62, 'Arms close, engines at low thrust') +
+      frame(430, '3. Pins on rails', 60, 96, 'Engines off, booster hangs by its pins') +
+      '<polygon points="98,130 118,130 108,175" fill="var(--ship)" opacity="0.5"/><polygon points="308,215 328,215 318,235" fill="var(--ship)" opacity="0.4"/>' +
+      '</svg>';
+  }
+};
+
+(function buildCards() {
+  const wrap = document.getElementById('cards');
+  for (const t of TECH) {
+    const card = h('article', 'card' + (t.figure ? ' wide' : ''));
+    card.id = 'tech-' + t.id;
+    card.appendChild(h('h3', null, t.name));
+    card.appendChild(h('p', 'lead', t.lead));
+    for (const para of t.body) card.appendChild(h('p', null, para));
+    const dl = document.createElement('dl');
+    for (const [k, v] of t.facts) { const d = document.createElement('div'); d.appendChild(h('dt', null, k)); d.appendChild(h('dd', null, v)); dl.appendChild(d); }
+    card.appendChild(dl);
+    if (t.figure) {
+      const fig = document.createElement('figure');
+      fig.innerHTML = FIGURES[t.figure]();
+      const cap = h('figcaption', null, t.figure === 'ffsc' ? 'Full-flow staged combustion: each propellant runs its own preburner and turbine, and both exhaust streams feed the main chamber. Blue is oxygen, orange is methane.' :
+        t.figure === 'tiles' ? 'The heat shield as seen from outside (top) and in cross-section (bottom).' : 'A tower catch in three frames. The orange squares are the catch pins beneath the grid fins.');
+      fig.appendChild(cap);
+      card.appendChild(fig);
+    }
+    const used = h('p', 'used-in', 'In the flight: ');
+    t.used.forEach((pid, i) => {
+      const ph = PHASES.find(p => p.id === pid);
+      const b = h('button', null, ph.name);
+      b.type = 'button';
+      b.addEventListener('click', () => { showView('flight'); seek(ph.t); });
+      if (i > 0) used.appendChild(document.createTextNode(', '));
+      used.appendChild(b);
+    });
+    card.appendChild(used);
+    wrap.appendChild(card);
+  }
+})();
+
+// ---------------------------------------------------------------------------
+// Flight log
+// ---------------------------------------------------------------------------
+(function buildLog() {
+  const tbody = document.querySelector('#log tbody');
+  const PILL = { good: 'Success', partial: 'Partial', lost: 'Lost', plan: 'Planned' };
+  for (const f of FLIGHTS) {
+    const tr = document.createElement('tr');
+    if (f.planned) tr.className = 'planned';
+    const cell = (cls, content) => { const td = h('td', cls); if (typeof content === 'string') td.textContent = content; else td.appendChild(content); tr.appendChild(td); };
+    cell('n', 'Flight ' + f.n);
+    cell('date', fmtDate(f.date));
+    cell(null, f.veh);
+    for (const o of [f.b, f.s]) {
+      const frag = document.createDocumentFragment();
+      frag.appendChild(h('span', 'pill ' + o[0], PILL[o[0]]));
+      frag.appendChild(document.createTextNode(o[1]));
+      cell(null, frag);
+    }
+    cell(null, f.why);
+    tbody.appendChild(tr);
+  }
+})();
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+function start(saved) {
+  let view = 'flight', sp = 5;
+  try {
+    view = saved.view || localStorage.getItem('sfp-view') || 'flight';
+    sp = saved.speed || Number(localStorage.getItem('sfp-speed')) || 5;
+  } catch (e) { /* storage unavailable */ }
+  if (!SPEEDS.includes(sp)) sp = 5;
+  setSpeed(sp);
+  showView(['flight', 'vehicle', 'tech', 'log'].includes(view) ? view : 'flight');
+  selectPart('beng');
+  tNow = typeof saved.t === 'number' ? clamp(saved.t, T_START, T_END) : T_START;
+  // Deep link: ?t=<seconds from liftoff>&view=<flight|vehicle|tech|log>
+  const q = new URLSearchParams(location.search);
+  if (q.has('t') && !Number.isNaN(Number(q.get('t')))) tNow = clamp(Number(q.get('t')), T_START, T_END);
+  if (q.has('view') && ['flight', 'vehicle', 'tech', 'log'].includes(q.get('view'))) showView(q.get('view'));
+  renderAll();
+}
+if (window.claude && window.claude.hot && window.claude.hot.snapshot) {
+  window.claude.hot.snapshot(() => ({ t: tNow, speed: speed, view: document.querySelector('.tabs button[aria-selected="true"]').dataset.view }));
+}
+if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
+</script>
